@@ -1,6 +1,5 @@
 import asyncpg
 from quart import current_app as app
-from .utils import parse_and_publish_dashboard_data, publish_dashboard_data
 
 class Postgres:
     def __init__(self):
@@ -100,7 +99,7 @@ class Postgres:
         pool = self._get_read_pool()
         async with pool.acquire() as conn:
             try:
-                app.logger.debug(f"select-query:: {query}")
+                print(f"select-query:: {query}")
                 result = await conn.fetch(query)
                 return list(map(dict, result))
             except Exception as error:
@@ -130,17 +129,10 @@ class Postgres:
         query = insert_base_string.format(table, keys, value_place_holder[:-1])
         async with self._pool.acquire() as conn, conn.transaction():
             try:
-                app.logger.debug("insert-query:: %s", query)
-                app.logger.debug("insert-values:: %s", values)
+                print("insert-query:: %s", query)
+                print("insert-values:: %s", values)
                 result = await conn.execute(query, *tuple(values.values()))
-                app.logger.debug(f"Publish dashboard events :: {self.publish_dashboard_events}")
-                if self.publish_dashboard_events:
-                    await publish_dashboard_data(**{
-                    "company_id" : values.get('company_id', None),
-                    "module" : table,
-                    "data" : values,
-                    "operation_type": "insert"
-                })
+                print(f"Publish dashboard events :: {self.publish_dashboard_events}")
                 return int(float(result.split(' ')[-1]))
             except Exception as error:
                 app.logger.error(f"Insert Query Error:: {query} => {error} ")
@@ -172,18 +164,10 @@ class Postgres:
         query = update_base_string.format(table, keys, value_place_holder[:-1], where_condition)
         async with self._pool.acquire() as conn, conn.transaction():
             try:
-                app.logger.debug("update-query:: %s", query)
-                app.logger.debug("update-values:: %s", values)
+                print("update-query:: %s", query)
+                print("update-values:: %s", values)
                 result = await conn.execute(query, *tuple(values.values()))
-                app.logger.debug(f"Publish dashboard events :: {self.publish_dashboard_events}")
-                if self.publish_dashboard_events:
-                    await publish_dashboard_data(**{
-                    "company_id" : values.get('company_id', None),
-                    "module" : table,
-                    "data" : values,
-                    "where": where,
-                    "operation_type": "update"
-                })
+                print(f"Publish dashboard events :: {self.publish_dashboard_events}")
                 return int(float(result.split(' ')[-1]))
             except Exception as error:
                 app.logger.error(f"Update Query Error:: {query} => {error} ")
@@ -206,7 +190,7 @@ class Postgres:
         query = delete_base_string.format(table, where_condition)
         async with self._pool.acquire() as conn, conn.transaction():
             try:
-                app.logger.debug("delete-query:: %s", query)
+                print("delete-query:: %s", query)
                 result = await conn.execute(query)
                 return int(float(result.split(' ')[-1]))
             except Exception as error:
@@ -243,11 +227,9 @@ class Postgres:
         final_query = ' '.join(queries)
         async with self._pool.acquire() as conn, conn.transaction():
             try:
-                app.logger.debug("insert-and-update-query:: %s", final_query)
+                print("insert-and-update-query:: %s", final_query)
                 result = await conn.execute(final_query)
-                app.logger.debug(f"Publish dashboard events :: {self.publish_dashboard_events}")
-                if self.publish_dashboard_events:
-                    await parse_and_publish_dashboard_data(final_query)
+                print(f"Publish dashboard events :: {self.publish_dashboard_events}")
                 return int(float(result.split(' ')[-1]))
             except Exception as error:
                 app.logger.error(f"Insert And Update Query Error:: {final_query} => {error}")
@@ -265,7 +247,7 @@ class Postgres:
         pool = self._get_read_pool()
         async with pool.acquire() as conn:
             try:
-                app.logger.debug("raw-select-query:: %s", query)
+                print("raw-select-query:: %s", query)
                 result = await conn.fetch(query)
                 return list(map(dict, result))
             except Exception as error:
@@ -284,11 +266,9 @@ class Postgres:
         """
         async with self._pool.acquire() as conn, conn.transaction():
             try:
-                app.logger.debug("raw-insert-query:: %s", query)
+                print("raw-insert-query:: %s", query)
                 result = await conn.execute(query)
-                app.logger.debug(f"Publish dashboard events :: {self.publish_dashboard_events}")
-                if self.publish_dashboard_events:
-                    await parse_and_publish_dashboard_data(query)
+                print(f"Publish dashboard events :: {self.publish_dashboard_events}")
                 return int(float(result.split(' ')[-1]))
             except Exception as error:
                 app.logger.error(f"Raw Insert Query Error  {query} => {error}")
@@ -306,11 +286,9 @@ class Postgres:
         """
         async with self._pool.acquire() as conn, conn.transaction():
             try:
-                app.logger.debug("raw-update-query:: %s", query)
+                print("raw-update-query:: %s", query)
                 result = await conn.execute(query)
-                app.logger.debug(f"Publish dashboard events :: {self.publish_dashboard_events}")
-                if self.publish_dashboard_events:
-                    await parse_and_publish_dashboard_data(query)
+                print(f"Publish dashboard events :: {self.publish_dashboard_events}")
                 return int(float(result.split(' ')[-1]))
             except Exception as error:
                 app.logger.error(f"Raw Update Query Error :: {query} => {error}")
@@ -330,9 +308,7 @@ class Postgres:
                 result = await conn.execute(query)
                 if result != 'COMMIT':
                     raise result
-                app.logger.debug(f"Publish dashboard events :: {self.publish_dashboard_events}")
-                if self.publish_dashboard_events:
-                    await parse_and_publish_dashboard_data(query)
+                print(f"Publish dashboard events :: {self.publish_dashboard_events}")
                 return result
             except Exception as error:
                 app.logger.error(f"Raw Transaction Query Error ::  {query} => {error}")
@@ -343,7 +319,7 @@ class Postgres:
         """
         Closes the connection pool.
         """
-        app.logger.debug("Closing connection pool")
+        print("Closing connection pool")
         await self._pool.close()
 
     def _get_read_pool(self):
@@ -364,17 +340,10 @@ class Postgres:
 
         async with self._pool.acquire() as conn:
             try:
-                app.logger.debug("insert-with-returning-query:: %s", query)
-                app.logger.debug("values: %s", values)
+                print("insert-with-returning-query:: %s", query)
+                print("values: %s", values)
                 result = await conn.fetchval(query, *tuple(values.values()))
-                app.logger.debug(f"Publish dashboard events :: {self.publish_dashboard_events}")
-                if self.publish_dashboard_events:
-                    await publish_dashboard_data(**{
-                    "company_id" : values.get('company_id', None),
-                    "module" : table,
-                    "data" : values,
-                    "operation_type": "insert"
-                })
+                print(f"Publish dashboard events :: {self.publish_dashboard_events}")
                 return result
             except Exception as error:
                 app.logger.error(f"error in insert_with_returning::  {query} => {error}")
@@ -390,11 +359,9 @@ class Postgres:
         """
         async with self._pool.acquire() as conn, conn.transaction():
             try:
-                app.logger.debug("insert-or-update-query:: %s", query)
+                print("insert-or-update-query:: %s", query)
                 result = await conn.execute(query)
-                app.logger.debug(f"Publish dashboard events :: {self.publish_dashboard_events}")
-                if self.publish_dashboard_events:
-                    await parse_and_publish_dashboard_data(query)
+                print(f"Publish dashboard events :: {self.publish_dashboard_events}")
                 return int(float(result.split(" ")[-1]))
             except Exception as error:
                 app.logger.error(f"error in execute_insert_or_update_query:: {query} => {error}")
